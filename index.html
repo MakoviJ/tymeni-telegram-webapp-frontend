@@ -239,7 +239,7 @@
             }
             
             try {
-                const response = await fetch('https://tymeni-telegram-backend.your-username.workers.dev/api/services', {
+                const response = await fetch('https://tymeni-telegram-webapp-frontend.pages.dev/api/services', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(formData)
@@ -269,7 +269,7 @@
         async function loadCategories() {
             try {
                 console.log('Завантаження категорій...');
-                const response = await fetch('https://tymeni-telegram-backend.your-username.workers.dev/api/categories');
+                const response = await fetch('https://tymeni-telegram-webapp-frontend.pages.dev/api/categories');
                 
                 if (!response.ok) {
                     throw new Error(`HTTP помилка: ${response.status}`);
@@ -291,7 +291,7 @@
         // 8. Функція для завантаження списку оголошень
         async function loadServices() {
             try {
-                const response = await fetch('https://tymeni-telegram-backend.your-username.workers.dev/api/services');
+                const response = await fetch('https://tymeni-telegram-webapp-frontend.pages.dev/api/services');
                 if (!response.ok) {
                     throw new Error(`HTTP error: ${response.status}`);
                 }
@@ -365,7 +365,7 @@
 // Ці функції завантажують та відображають дані зі статистики
 async function showStatistics() {
     try {
-        const response = await fetch('https://tymeni-telegram-backend.your-username.workers.dev/api/statistics');
+        const response = await fetch('https://tymeni-telegram-webapp-frontend.pages.dev/api/statistics');
         const data = await response.json();
         
         const modal = document.getElementById('statistics-modal');
@@ -407,4 +407,5 @@ document.getElementById('statistics-modal').addEventListener('click', function(e
 </script>
 
 </body>
+
 </html>
