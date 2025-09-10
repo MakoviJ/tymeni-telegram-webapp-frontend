@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ти - Мені, Я - тобі</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #222222);
+        }
+        h1 {
+            margin-top: 30px;
+            color: var(--tg-theme-text-color, #222222);
+        }
+        .btn {
+            display: block;
+            width: 80%;
+            margin: 15px auto;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            background-color: var(--tg-theme-button-color, #40a7e3);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            cursor: pointer;
+        }
+        /* Стилі для форми */
+        #create-form {
+            display: none;
+            margin: 20px auto;
+            max-width: 400px;
+        }
+        #create-form input, 
+        #create-form textarea, 
+        #create-form select {
+            width: 80%;
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-family: inherit;
+        }
+        #create-form textarea {
+            height: 60px;
+            resize: vertical;
+        }
+        .form-group {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>💙💛 Ти - Мені, Я - тобі 💙💛</h1>
+    <p>Платформа послуг Свої для Своїх</p>
+
+    <button class="btn" onclick="alert('Цей розділ ще в розробці!')">🔍 Знайти послугу</button>
+
+    <div id="create-form">
+        <h3>Створити оголошення</h3>
+        <form id="service-form">
+            <div class="form-group">
+                <input type="text" id="title" placeholder="Назва послуги" required>
+            </div>
+            
+            <div class="form-group">
+                <textarea id="description" placeholder="Опис послуги"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <select id="category" required onchange="updateSubcategories(); toggleSuggestedCategory();">
+                    <option value="">Оберіть категорію</option>
+                    </select>
+            </div>
+            
+            <div class="form-group">
+                <select id="subcategory" style="display: none;" required>
+                    <option value="">Оберіть підкатегорію</option>
+                    </select>
+            </div>
+            
+            <div class="form-group">
+                <input type="text" id="user_suggested_category" placeholder="Або запропонуйте нову категорію" 
+                        style="display: none; width: 80%; padding: 10px; border-radius: 5px; border: 1px solid #ccc;">
+            </div>
+            
+            <button type="submit" class="btn">Опублікувати</button>
+        </form>
+    </div>
+
+    <button class="btn" id="show-form-btn">✨ Запропонувати послугу</button>
+    <button class="btn" onclick="alert('Цей розділ ще в розробці!')">📞 Моя анкета</button>
+
+    <script>
+        // Глобальна змінна для зберігання категорій
+        let categoriesData = {};
+        
+        // ========= ВИПРАВЛЕННЯ #1: Винесено логіку оновлення підкатегорій окремо =========
+        // Тепер ця функція використовує глобальну змінну `categoriesData`
+        function updateSubcategories() {
+            const categorySelect = document.getElementById('category');
+            const subcategorySelect = document.getElementById('subcategory');
+            const categoryKey = categorySelect.value;
+            
+            // Очищаємо підкатегорії
+            subcategorySelect.innerHTML = '<option value="">Оберіть підкатегорію</option>';
+            
+            if (categoryKey && categoryKey !== 'other' && categoriesData[categoryKey]) {
+                // Додаємо підкатегорії для обраної категорії
+                categoriesData[categoryKey].subcategories.forEach(sub => {
+                    const option = document.createElement('option');
+                    option.value = sub;
+                    option.textContent = sub;
+                    subcategorySelect.appendChild(option);
+                });
+                subcategorySelect.style.display = 'block';
+                subcategorySelect.setAttribute('required', 'true');
+            } else {
+                subcategorySelect.style.display = 'none';
+                subcategorySelect.removeAttribute('required');
+            }
+            
+            toggleSuggestedCategory();
+        }
+
+        // ====== ОСНОВНА ЛОГІКА ДОДАТКУ ======
+        
+        // 1. Ініціалізація Telegram Web App
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Розгорнути на весь екран
+        tg.enableClosingConfirmation(); // Підтвердження закриття
+        tg.MainButton.setText("Готово").show(); // Головна кнопка
+        tg.MainButton.onClick(() => tg.close());
+
+        // 2. Дані автентифікації від Telegram
+        const initData = Telegram.WebApp.initData;
+        console.log("Telegram user data:", initData);
+
+        // 3. Функція для показу форми створення оголошення
+        function showCreateForm() {
+            document.getElementById('create-form').style.display = 'block';
+        }
+
+        // ========= ВИПРАВЛЕННЯ #2: Додано функцію для оновлення списку категорій =========
+        // Ця функція заповнює випадаючий список на основі отриманих даних
+        function updateCategoryDropdown() {
+            const categorySelect = document.getElementById('category');
+            console.log('Оновлення списку категорій...');
+            
+            // Очищаємо ВСІ опції, включаючи першу
+            categorySelect.innerHTML = '<option value="">Оберіть категорію</option>';
+            
+            // Додаємо категорії з серверних даних
+            for (const [key, category] of Object.entries(categoriesData)) {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = category.name;
+                categorySelect.appendChild(option);
+                console.log('Додано категорію:', key, category.name);
+            }
+            
+            // Додаємо опцію "Інше" в кінець
+            const otherOption = document.createElement('option');
+            otherOption.value = 'other';
+            otherOption.textContent = '✨ Різні послуги';
+            categorySelect.appendChild(otherOption);
+            
+            console.log('Список категорій оновлено. Всього опцій:', categorySelect.options.length);
+        }
+
+        // 5. Функція для перемикання поля нової категорії
+        function toggleSuggestedCategory() {
+            const categorySelect = document.getElementById('category');
+            const suggestedInput = document.getElementById('user_suggested_category');
+            const subcategorySelect = document.getElementById('subcategory');
+            
+            if (categorySelect.value === 'other') {
+                suggestedInput.style.display = 'block';
+                suggestedInput.setAttribute('required', 'true');
+                subcategorySelect.style.display = 'none';
+                subcategorySelect.removeAttribute('required');
+            } else {
+                suggestedInput.style.display = 'none';
+                suggestedInput.removeAttribute('required');
+                if (categorySelect.value && categorySelect.value !== 'other') {
+                    subcategorySelect.style.display = 'block';
+                    subcategorySelect.setAttribute('required', 'true');
+                }
+            }
+        }
+
+        // 6. Функція для створення оголошення
+        async function createService(event) {
+            event.preventDefault();
+            
+            const title = document.getElementById('title').value;
+            const description = document.getElementById('description').value;
+            const category = document.getElementById('category').value;
+            const subcategory = document.getElementById('subcategory').value;
+            const user_suggested_category = document.getElementById('user_suggested_category').value;
+            
+            // Валідація заповнення полів
+            if (!title || !category) {
+                alert('Будь ласка, заповніть обовʼязкові поля: назва та категорія');
+                return;
+            }
+            
+            // Спеціальна валідація для категорії "інше"
+            if (category === 'other' && !user_suggested_category) {
+                alert('Будь ласка, запропонуйте назву нової категорії');
+                return;
+            }
+            
+            // Для звичайних категорій - перевірка підкатегорії
+            if (category !== 'other' && !subcategory) {
+                alert('Будь ласка, оберіть підкатегорію');
+                return;
+            }
+            
+            // Готуємо дані для відправки
+            const formData = {
+                title: title,
+                description: description,
+                category: category,
+                initData: initData
+            };
+            
+            // Додаємо підкатегорію або запропоновану категорію в залежності від вибору
+            if (category === 'other') {
+                formData.subcategory = 'Інше';
+                formData.user_suggested_category = user_suggested_category;
+            } else {
+                formData.subcategory = subcategory;
+            }
+            
+            try {
+                const response = await fetch('https://tymeni-telegram-backend.your-username.workers.dev/api/services', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.details || `Помилка сервера: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                console.log('Успішно створено:', result);
+                alert('Оголошення успішно додано! 🎉');
+                
+                // Очищаємо форму та ховаємо її
+                document.getElementById('service-form').reset();
+                document.getElementById('create-form').style.display = 'none';
+                
+            } catch (error) {
+                console.error('Помилка при створенні:', error);
+                alert('Сталася помилка: ' + error.message);
+            }
+        }
+
+        // ========= ВИПРАВЛЕННЯ #3: Уточнено функцію loadCategories() =========
+        // Ця функція тепер обробляє відповідь і викликає updateCategoryDropdown()
+        async function loadCategories() {
+            try {
+                console.log('Завантаження категорій...');
+                const response = await fetch('https://tymeni-telegram-backend.your-username.workers.dev/api/categories');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP помилка: ${response.status}`);
+                }
+                
+                categoriesData = await response.json();
+                console.log('Категорії завантажено:', categoriesData);
+                
+                // Оновлюємо випадаючий список категорій після успішного завантаження
+                updateCategoryDropdown();
+                
+            } catch (error) {
+                console.error('Помилка завантаження категорій:', error);
+                // Fallback - можна показати статичний список як резервний варіант
+                showStaticCategories();
+            }
+        }
+
+        // 8. Функція для завантаження списку оголошень
+        async function loadServices() {
+            try {
+                const response = await fetch('https://tymeni-telegram-backend.your-username.workers.dev/api/services');
+                if (!response.ok) {
+                    throw new Error(`HTTP error: ${response.status}`);
+                }
+                const services = await response.json();
+                console.log('Отримані оголошення:', services);
+                // Тут буде логіка відображення оголошень в інтерфейсі
+            } catch (error) {
+                console.error('Помилка завантаження:', error);
+            }
+        }
+
+        // 9. Ініціалізація після завантаження DOM
+        document.addEventListener('DOMContentLoaded', function() {
+            // Додаємо обробник для форми
+            const form = document.getElementById('service-form');
+            if (form) {
+                form.addEventListener('submit', createService);
+            }
+            
+            // Додаємо обробник для кнопки "Запропонувати послугу"
+            const showFormBtn = document.getElementById('show-form-btn');
+            if (showFormBtn) {
+                showFormBtn.addEventListener('click', showCreateForm);
+            }
+
+            // ========= ВИПРАВЛЕННЯ #4: Додано функцію showStaticCategories() в правильне місце =========
+            // Ця функція додає категорії без запиту до сервера (резервний варіант)
+            function showStaticCategories() {
+                console.log('Використання резервних статичних категорій');
+                const categorySelect = document.getElementById('category');
+                
+                // Статичний список категорій (як було в HTML)
+                const staticCategories = [
+                    {value: 'repair', name: '🔧 Ремонт та будівництво'},
+                    {value: 'beauty', name: '💅 Краса та здоровʼя'},
+                    {value: 'education', name: '📚 Освіта та навчання'},
+                    {value: 'transport', name: '🚗 Транспорт та перевезення'},
+                    {value: 'medicine', name: '🏥 Медицина та догляд'},
+                    {value: 'food', name: '🍕 Їжа та кулінарія'},
+                    {value: 'other', name: '✨ Різні послуги'}
+                ];
+                
+                // Додаємо статичні категорії
+                staticCategories.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat.value;
+                    option.textContent = cat.name;
+                    categorySelect.appendChild(option);
+                });
+            }
+            
+            // Завантажуємо категорії та оголошення при старті
+            loadCategories();
+            loadServices();
+        });
+
+    </script>
+
+<button class="btn" onclick="showStatistics()">📊 Статистика категорій</button>
+
+<div id="statistics-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="background: white; margin: 50px auto; padding: 20px; border-radius: 10px; max-width: 500px;">
+        <h3>📊 Статистика запропонованих категорій</h3>
+        <div id="statistics-content"></div>
+        <button onclick="hideStatistics()" style="margin-top: 20px; padding: 10px 20px;">Закрити</button>
+    </div>
+</div>
+
+<script>
+// ========= ВИПРАВЛЕННЯ #5: Оновлено функції статистики =========
+// Ці функції завантажують та відображають дані зі статистики
+async function showStatistics() {
+    try {
+        const response = await fetch('https://tymeni-telegram-backend.your-username.workers.dev/api/statistics');
+        const data = await response.json();
+        
+        const modal = document.getElementById('statistics-modal');
+        const content = document.getElementById('statistics-content');
+        
+        if (data.total_suggestions === 0) {
+            content.innerHTML = '<p>Ще немає запропонованих категорій</p>';
+        } else {
+            let html = `<p><strong>Всього запропоновано:</strong> ${data.total_suggestions} категорій</p>`;
+            html += '<h4>Популярність категорій:</h4>';
+            html += '<ul style="text-align: left; max-height: 300px; overflow-y: auto;">';
+            
+            for (const [category, count] of Object.entries(data.categories)) {
+                html += `<li><strong>${category}</strong>: ${count} запит(ів)</li>`;
+            }
+            
+            html += '</ul>';
+            content.innerHTML = html;
+        }
+        
+        modal.style.display = 'block';
+        
+    } catch (error) {
+        console.error('Помилка завантаження статистики:', error);
+        alert('Не вдалося завантажити статистику');
+    }
+}
+
+function hideStatistics() {
+    document.getElementById('statistics-modal').style.display = 'none';
+}
+
+// Закривати модальне вікно при кліку на затемнений фон
+document.getElementById('statistics-modal').addEventListener('click', function(event) {
+    if (event.target === this) {
+        hideStatistics();
+    }
+});
+</script>
+
+</body>
+</html>
