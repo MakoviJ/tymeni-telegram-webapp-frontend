@@ -4,30 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ти - Мені, Я - тобі</title>
+    <!-- ПІДКЛЮЧАЄМО SDK ПЕРШИМ -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         /* Стилі для всіх екранів */
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; 
-            text-align: center; 
-            padding: 20px; 
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            text-align: center;
+            padding: 20px;
             background-color: var(--tg-theme-bg-color, #ffffff);
             color: var(--tg-theme-text-color, #000000);
             transition: background-color 0.3s, color 0.3s;
         }
         h1 { margin-top: 30px; }
-        .btn { 
-            display: block; 
-            width: 80%; 
-            margin: 15px auto; 
-            padding: 15px; 
-            border: none; 
-            border-radius: 10px; 
-            font-size: 18px; 
-            font-weight: bold; 
-            background-color: var(--tg-theme-button-color, #40a7e3); 
-            color: var(--tg-theme-button-text-color, #ffffff); 
-            cursor: pointer; 
+        .btn {
+            display: block;
+            width: 80%;
+            margin: 15px auto;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            background-color: var(--tg-theme-button-color, #40a7e3);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            cursor: pointer;
         }
         .form-group {
             margin-bottom: 15px;
@@ -99,217 +100,214 @@
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        const WORKER_URL = 'https://tymeni-telegram-backend.team-tymeni.workers.dev';
-
-        // Дані для випадаючих списків (у майбутньому можна завантажувати з API)
-        const countryCityData = {
-            'Україна': ['Київ', 'Львів', 'Харків', 'Одеса'],
-            'Польща': ['Варшава', 'Краків', 'Вроцлав', 'Гданськ']
-        };
-        let allCategories = {}; // Зберігаємо тут категорії з бекенду
-        let userCountry = null;
-        let userCity = null;
-
-        tg.ready();
-        tg.expand();
-        tg.enableClosingConfirmation();
-
-        // Функція для показу певного екрану
-        function showScreen(screenId) {
-            const screens = ['welcome-screen', 'main-menu', 'create-service-form'];
-            screens.forEach(id => {
-                document.getElementById(id).style.display = 'none';
-            });
-            document.getElementById(screenId).style.display = 'block';
-        }
-
-        // Функція для оновлення списку міст залежно від обраної країни
-        function updateCities() {
-            const countrySelect = document.getElementById('country-select');
-            const citySelect = document.getElementById('city-select');
-            const selectedCountry = countrySelect.value;
-            citySelect.innerHTML = '';
-            if (countryCityData[selectedCountry]) {
-                countryCityData[selectedCountry].forEach(city => {
-                    const option = document.createElement('option');
-                    option.value = city;
-                    option.textContent = city;
-                    citySelect.appendChild(option);
-                });
-            }
-        }
-
-        // Функція для заповнення випадаючих списків країн
-        function populateCountries() {
-            const countrySelect = document.getElementById('country-select');
-            for (const country in countryCityData) {
-                const option = document.createElement('option');
-                option.value = country;
-                option.textContent = country;
-                countrySelect.appendChild(option);
-            }
-            updateCities();
-        }
-
-        // Функція для перевірки стану користувача
-        async function checkUserStatus() {
-            try {
-                const response = await fetch(`${WORKER_URL}/api/users`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ initData: tg.initData })
-                });
-                const user = await response.json();
-
-                if (user.country && user.city) {
-                    userCountry = user.country;
-                    userCity = user.city;
-                    showScreen('main-menu');
-                } else {
-                    populateCountries();
-                    showScreen('welcome-screen');
-                }
-            } catch (error) {
-                tg.showAlert('Помилка авторизації. Спробуйте перезапустити бота.');
-                console.error('Помилка перевірки користувача:', error);
-            }
-        }
-
-        // Функція для збереження локації
-        async function saveUserLocation() {
-            const country = document.getElementById('country-select').value;
-            const city = document.getElementById('city-select').value;
-
-            if (!country || !city) {
-                tg.showAlert('Будь ласка, оберіть країну та місто.');
-                return;
-            }
-            
-            try {
-                const response = await fetch(`${WORKER_URL}/api/users/location`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        initData: tg.initData, 
-                        country: country, 
-                        city: city 
-                    })
-                });
-                if (response.ok) {
-                    userCountry = country;
-                    userCity = city;
-                    tg.showPopup({
-                        title: 'Успіх!',
-                        message: `Ваше місцезнаходження (${country}, ${city}) збережено.`,
-                        buttons: [{id: 'ok', text: 'OK'}]
-                    }, () => showScreen('main-menu'));
-                } else {
-                    tg.showAlert('Помилка збереження локації. Спробуйте ще раз.');
-                }
-            } catch (error) {
-                tg.showAlert('Помилка мережі. Перевірте з\'єднання.');
-                console.error('Помилка збереження локації:', error);
-            }
-        }
-
-        // Функція для завантаження категорій та заповнення форм
-        async function loadCategories() {
-            if (Object.keys(allCategories).length > 0) return; // Завантажуємо тільки один раз
-            try {
-                const response = await fetch(`${WORKER_URL}/api/categories`);
-                allCategories = await response.json();
-                const categorySelect = document.getElementById('category-select');
-                categorySelect.innerHTML = '';
-                for (const key in allCategories) {
-                    const option = document.createElement('option');
-                    option.value = key;
-                    option.textContent = allCategories[key].name;
-                    categorySelect.appendChild(option);
-                }
-                updateSubcategories();
-            } catch (error) {
-                tg.showAlert('Не вдалося завантажити категорії.');
-                console.error('Помилка завантаження категорій:', error);
-            }
-        }
-
-        // Функція для оновлення підкатегорій
-        function updateSubcategories() {
-            const categorySelect = document.getElementById('category-select');
-            const subcategorySelect = document.getElementById('subcategory-select');
-            const selectedCategoryKey = categorySelect.value;
-            subcategorySelect.innerHTML = '';
-            if (allCategories[selectedCategoryKey]) {
-                allCategories[selectedCategoryKey].subcategories.forEach(sub => {
-                    const option = document.createElement('option');
-                    option.value = sub;
-                    option.textContent = sub;
-                    subcategorySelect.appendChild(option);
-                });
-            }
-        }
-
-        // Функція для показу форми створення оголошення
-        function showCreateForm() {
-            loadCategories();
-            showScreen('create-service-form');
-        }
-
-        // Функція для повернення в головне меню
-        function showMainMenu() {
-            showScreen('main-menu');
-        }
-
-        // Функція для відправки оголошення
-        async function submitService() {
-            const title = document.getElementById('title').value;
-            const description = document.getElementById('description').value;
-            const category = document.getElementById('category-select').value;
-            const subcategory = document.getElementById('subcategory-select').value;
-
-            if (!title || !category || !subcategory) {
-                tg.showAlert('Будь ласка, заповніть всі обов\'язкові поля.');
-                return;
-            }
-
-            try {
-                const response = await fetch(`${WORKER_URL}/api/services`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        initData: tg.initData,
-                        title,
-                        description,
-                        category,
-                        subcategory,
-                        country: userCountry,
-                        city: userCity
-                    })
-                });
+        // Код, що залежить від Telegram SDK, тепер у цьому блоці
+        // Ми чекаємо, поки DOM буде повністю завантажений
+        document.addEventListener('DOMContentLoaded', function() {
+            // Перевіряємо, чи Telegram SDK завантажено
+            if (window.Telegram && window.Telegram.WebApp) {
+                const tg = window.Telegram.WebApp;
+                const WORKER_URL = 'https://tymeni-telegram-backend.team-tymeni.workers.dev';
+                const countryCityData = {
+                    'Україна': ['Київ', 'Львів', 'Харків', 'Одеса'],
+                    'Польща': ['Варшава', 'Краків', 'Вроцлав', 'Гданськ']
+                };
+                let allCategories = {};
+                let userCountry = null;
+                let userCity = null;
                 
-                if (response.ok) {
-                    tg.showPopup({
-                        title: 'Оголошення опубліковано!',
-                        message: `Ваша послуга "${title}" успішно додана.`,
-                        buttons: [{id: 'ok', text: 'OK'}]
-                    }, () => {
-                        // Очистити форму та повернутися до головного меню
-                        document.getElementById('title').value = '';
-                        document.getElementById('description').value = '';
-                        showMainMenu();
-                    });
-                } else {
-                    tg.showAlert('Помилка публікації. Спробуйте ще раз.');
-                }
-            } catch (error) {
-                tg.showAlert('Помилка мережі. Перевірте з\'єднання.');
-                console.error('Помилка публікації:', error);
-            }
-        }
+                // Це має викликатися тільки після завантаження SDK
+                tg.ready();
+                tg.expand();
+                tg.enableClosingConfirmation();
 
-        // Починаємо з перевірки користувача
-        checkUserStatus();
+                // Функції для роботи з інтерфейсом
+                function showScreen(screenId) {
+                    const screens = ['welcome-screen', 'main-menu', 'create-service-form'];
+                    screens.forEach(id => {
+                        document.getElementById(id).style.display = 'none';
+                    });
+                    document.getElementById(screenId).style.display = 'block';
+                }
+
+                function updateCities() {
+                    const countrySelect = document.getElementById('country-select');
+                    const citySelect = document.getElementById('city-select');
+                    const selectedCountry = countrySelect.value;
+                    citySelect.innerHTML = '';
+                    if (countryCityData[selectedCountry]) {
+                        countryCityData[selectedCountry].forEach(city => {
+                            const option = document.createElement('option');
+                            option.value = city;
+                            option.textContent = city;
+                            citySelect.appendChild(option);
+                        });
+                    }
+                }
+
+                function populateCountries() {
+                    const countrySelect = document.getElementById('country-select');
+                    for (const country in countryCityData) {
+                        const option = document.createElement('option');
+                        option.value = country;
+                        option.textContent = country;
+                        countrySelect.appendChild(option);
+                    }
+                    updateCities();
+                }
+
+                async function checkUserStatus() {
+                    try {
+                        const response = await fetch(`${WORKER_URL}/api/users`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ initData: tg.initData })
+                        });
+                        const user = await response.json();
+
+                        if (user.country && user.city) {
+                            userCountry = user.country;
+                            userCity = user.city;
+                            showScreen('main-menu');
+                        } else {
+                            populateCountries();
+                            showScreen('welcome-screen');
+                        }
+                    } catch (error) {
+                        tg.showAlert('Помилка авторизації. Спробуйте перезапустити бота.');
+                        console.error('Помилка перевірки користувача:', error);
+                    }
+                }
+
+                async function saveUserLocation() {
+                    const country = document.getElementById('country-select').value;
+                    const city = document.getElementById('city-select').value;
+                    if (!country || !city) {
+                        tg.showAlert('Будь ласка, оберіть країну та місто.');
+                        return;
+                    }
+                    try {
+                        const response = await fetch(`${WORKER_URL}/api/users/location`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                initData: tg.initData,
+                                country: country,
+                                city: city
+                            })
+                        });
+                        if (response.ok) {
+                            userCountry = country;
+                            userCity = city;
+                            tg.showPopup({
+                                title: 'Успіх!',
+                                message: `Ваше місцезнаходження (${country}, ${city}) збережено.`,
+                                buttons: [{id: 'ok', text: 'OK'}]
+                            }, () => showScreen('main-menu'));
+                        } else {
+                            tg.showAlert('Помилка збереження локації. Спробуйте ще раз.');
+                        }
+                    } catch (error) {
+                        tg.showAlert('Помилка мережі. Перевірте з\'єднання.');
+                        console.error('Помилка збереження локації:', error);
+                    }
+                }
+
+                async function loadCategories() {
+                    if (Object.keys(allCategories).length > 0) return;
+                    try {
+                        const response = await fetch(`${WORKER_URL}/api/categories`);
+                        allCategories = await response.json();
+                        const categorySelect = document.getElementById('category-select');
+                        categorySelect.innerHTML = '';
+                        for (const key in allCategories) {
+                            const option = document.createElement('option');
+                            option.value = key;
+                            option.textContent = allCategories[key].name;
+                            categorySelect.appendChild(option);
+                        }
+                        updateSubcategories();
+                    } catch (error) {
+                        tg.showAlert('Не вдалося завантажити категорії.');
+                        console.error('Помилка завантаження категорій:', error);
+                    }
+                }
+
+                function updateSubcategories() {
+                    const categorySelect = document.getElementById('category-select');
+                    const subcategorySelect = document.getElementById('subcategory-select');
+                    const selectedCategoryKey = categorySelect.value;
+                    subcategorySelect.innerHTML = '';
+                    if (allCategories[selectedCategoryKey]) {
+                        allCategories[selectedCategoryKey].subcategories.forEach(sub => {
+                            const option = document.createElement('option');
+                            option.value = sub;
+                            option.textContent = sub;
+                            subcategorySelect.appendChild(option);
+                        });
+                    }
+                }
+
+                function showCreateForm() {
+                    loadCategories();
+                    showScreen('create-service-form');
+                }
+
+                function showMainMenu() {
+                    showScreen('main-menu');
+                }
+
+                async function submitService() {
+                    const title = document.getElementById('title').value;
+                    const description = document.getElementById('description').value;
+                    const category = document.getElementById('category-select').value;
+                    const subcategory = document.getElementById('subcategory-select').value;
+
+                    if (!title || !category || !subcategory) {
+                        tg.showAlert('Будь ласка, заповніть всі обов\'язкові поля.');
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(`${WORKER_URL}/api/services`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                initData: tg.initData,
+                                title,
+                                description,
+                                category,
+                                subcategory,
+                                country: userCountry,
+                                city: userCity
+                            })
+                        });
+
+                        if (response.ok) {
+                            tg.showPopup({
+                                title: 'Оголошення опубліковано!',
+                                message: `Ваша послуга "${title}" успішно додана.`,
+                                buttons: [{id: 'ok', text: 'OK'}]
+                            }, () => {
+                                document.getElementById('title').value = '';
+                                document.getElementById('description').value = '';
+                                showMainMenu();
+                            });
+                        } else {
+                            tg.showAlert('Помилка публікації. Спробуйте ще раз.');
+                        }
+                    } catch (error) {
+                        tg.showAlert('Помилка мережі. Перевірте з\'єднання.');
+                        console.error('Помилка публікації:', error);
+                    }
+                }
+
+                // Починаємо з перевірки користувача
+                checkUserStatus();
+
+            } else {
+                console.error("Telegram WebApp SDK не завантажено. Перевірте підключення.");
+            }
+        });
 
     </script>
 </body>
