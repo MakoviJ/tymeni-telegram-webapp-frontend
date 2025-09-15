@@ -12,6 +12,8 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
             text-align: center;
             padding: 20px;
+            /* NEW: Додаємо відступ знизу, щоб контент не перекривався панеллю локації */
+            padding-bottom: 70px; 
             background-color: var(--tg-theme-bg-color, #ffffff);
             color: var(--tg-theme-text-color, #000000);
             transition: background-color 0.3s, color 0.3s;
@@ -50,6 +52,44 @@
         /* Приховуємо всі екрани за замовчуванням */
         #welcome-screen, #main-menu, #create-service-form {
             display: none;
+        }
+
+        /* NEW: Стилі для панелі відображення локації */
+        #location-display {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            padding: 10px 20px;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            color: var(--tg-theme-hint-color, #888888);
+            border-top: 1px solid var(--tg-theme-hint-color, #cccccc);
+            z-index: 100;
+        }
+        .change-location-btn {
+            background: none;
+            border: none;
+            color: var(--tg-theme-link-color, #2481cc);
+            cursor: pointer;
+            margin-left: 10px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            padding: 5px;
+            border-radius: 5px;
+            font-weight: 500;
+        }
+        .change-location-btn:hover {
+            background-color: rgba(0,0,0,0.05);
+        }
+        .change-location-btn svg {
+            margin-right: 4px;
+            fill: currentColor;
         }
     </style>
 </head>
@@ -99,6 +139,17 @@
         <button class="btn" onclick="showMainMenu()">Назад</button>
     </div>
 
+    <!-- NEW: Блок для відображення поточної локації -->
+    <div id="location-display" style="display: none;">
+        <span id="location-text"></span>
+        <button onclick="changeLocation()" class="change-location-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+                <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3.086L6.5 11.828 8.172 10.155l6.62-6.619zM5 12.586 2.414 10 4.172 8.328 2 6.155 3.845 4l6.328 6.328-2.586 2.586z"/>
+            </svg>
+            <span>Змінити</span>
+        </button>
+    </div>
+
     <script>
         // Глобальні змінні
         const WORKER_URL = 'https://tymeni-telegram-backend.team-tymeni.workers.dev';
@@ -109,15 +160,40 @@
         let allCategories = {};
         let userCountry = null;
         let userCity = null;
-        let tg; // Оголошуємо tg тут, щоб він був доступний у всіх функціях
+        let tg;
 
-        // Функції для роботи з інтерфейсом (залишаються глобальними)
+        // NEW: Отримуємо доступ до елемента для відображення локації
+        const locationDisplay = document.getElementById('location-display');
+        const locationText = document.getElementById('location-text');
+
+        // Функції для роботи з інтерфейсом
         function showScreen(screenId) {
             const screens = ['welcome-screen', 'main-menu', 'create-service-form'];
             screens.forEach(id => {
                 document.getElementById(id).style.display = 'none';
             });
             document.getElementById(screenId).style.display = 'block';
+
+            // NEW: Логіка відображення панелі локації
+            if (screenId === 'main-menu' || screenId === 'create-service-form') {
+                updateLocationDisplay();
+                locationDisplay.style.display = 'flex';
+            } else {
+                locationDisplay.style.display = 'none';
+            }
+        }
+
+        // NEW: Функція для оновлення тексту локації
+        function updateLocationDisplay() {
+            if (userCountry && userCity) {
+                locationText.textContent = `Ваша локація: ${userCountry}, ${userCity}`;
+            }
+        }
+        
+        // NEW: Функція для переходу до зміни локації
+        function changeLocation() {
+            populateCountries(); // Перезаповнюємо список країн на випадок оновлень
+            showScreen('welcome-screen');
         }
 
         function updateCities() {
@@ -137,6 +213,8 @@
 
         function populateCountries() {
             const countrySelect = document.getElementById('country-select');
+            // Очищуємо, щоб уникнути дублікатів при повторному виклику
+            countrySelect.innerHTML = '<option value="" disabled selected>Оберіть країну</option>';
             for (const country in countryCityData) {
                 const option = document.createElement('option');
                 option.value = country;
@@ -292,10 +370,8 @@
             }
         }
 
-        // Цей блок коду виконується, коли вся сторінка буде завантажена
         document.addEventListener('DOMContentLoaded', function() {
             if (window.Telegram && window.Telegram.WebApp) {
-                // Ініціалізуємо tg тільки після завантаження SDK
                 tg = window.Telegram.WebApp;
                 
                 tg.ready();
