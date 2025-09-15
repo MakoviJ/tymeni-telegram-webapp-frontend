@@ -533,28 +533,68 @@
         }
         
         // Функція для виконання пошуку (залишаємо попередню логіку, але додаємо нові параметри)
-        async function performSearch() {
+       async function performSearch() {
             const keyword = document.getElementById('keyword-search').value.trim();
             const category = document.getElementById('search-category-select').value;
             const subcategory = document.getElementById('search-subcategory-select').value;
             
-            // Будуємо URL для пошуку (використовуємо існуючий endpoint /api/services)
+            // Будуємо URL для пошуку
             const url = new URL(`${WORKER_URL}/api/services`);
             if (userCountry && userCountry !== 'Всі') url.searchParams.append('country', userCountry);
             if (userCity && userCity !== 'Всі') url.searchParams.append('city', userCity);
             if (category && category !== 'Всі') url.searchParams.append('category', category);
             if (subcategory && subcategory !== 'Всі') url.searchParams.append('subcategory', subcategory);
-            if (keyword) url.searchParams.append('search', keyword); // Додаємо параметр пошуку за ключовими словами
+            if (keyword) url.searchParams.append('search', keyword);
         
             try {
                 const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('Помилка сервера');
+                }
                 const services = await response.json();
-                displaySearchResults(services);
+                displaySearchResults(services); // ВІДОБРАЖАЄМО РЕЗУЛЬТАТИ!
             } catch (error) {
                 console.error('Помилка пошуку:', error);
                 tg.showAlert('Помилка пошуку. Спробуйте ще раз.');
             }
         }
+
+        function displaySearchResults(services) {
+            const resultsContainer = document.getElementById('search-results');
+            resultsContainer.innerHTML = ''; // Очищаємо контейнер
+        
+            if (services.length === 0) {
+                resultsContainer.innerHTML = '<p style="text-align: center; padding: 20px; color: var(--tg-theme-hint-color);">За вашим запитом нічого не знайдено.</p>';
+                return;
+            }
+        
+            services.forEach(service => {
+                const serviceElement = document.createElement('div');
+                serviceElement.style.border = '1px solid var(--tg-theme-hint-color, #ccc)';
+                serviceElement.style.borderRadius = '10px';
+                serviceElement.style.padding = '15px';
+                serviceElement.style.marginBottom = '15px';
+                serviceElement.style.backgroundColor = 'var(--tg-theme-secondary-bg-color, #f9f9f9)';
+        
+                serviceElement.innerHTML = `
+                    <h3 style="margin-top: 0; color: var(--tg-theme-button-color, #40a7e3);">${service.title}</h3>
+                    <p><strong>Категорія:</strong> ${allCategories[service.category]?.name || service.category} / ${service.subcategory}</p>
+                    ${service.description ? `<p><strong>Опис:</strong> ${service.description}</p>` : ''}
+                    <p><strong>Локація:</strong> ${service.country}, ${service.city}</p>
+                    <p><strong>Від:</strong> ${service.first_name} ${service.username ? '(@' + service.username + ')' : ''}</p>
+                    <p><small>Опубліковано: ${new Date(service.created_at).toLocaleDateString('uk-UA')}</small></p>
+                    <button class="btn" onclick="tg.showAlert('Функція контактування зʼявиться найближчим часом!')">📞 Зв'язатися</button>
+                `;
+                resultsContainer.appendChild(serviceElement);
+            });
+        }
+
+        // Обробка натискання Enter в полі пошуку
+        document.getElementById('keyword-search').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
 
         document.addEventListener('DOMContentLoaded', function() {
             if (window.Telegram && window.Telegram.WebApp) {
@@ -574,6 +614,7 @@
     </script>
 </body>
 </html>
+
 
 
 
