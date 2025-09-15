@@ -95,8 +95,14 @@
 </head>
 <body>
 
-    <h1>💙💛 Ти - Мені,
-        Я - тобі 💙💛</h1>
+    <style>
+        .second-line {
+            display: inline-block;
+            margin-top: 5px;
+        }
+    </style>
+
+    <h1>💙💛 Ти - Мені,<br><span class="second-line">Я - Тобі</span> 💙💛</h1>
 
     <div id="welcome-screen">
         <p>Вітаємо на платформі! Будь ласка, оберіть країну та місто, щоб почати.</p>
@@ -145,9 +151,7 @@
                 </select>
             </div>
             
-            <button class="btn search-btn" onclick="performSearch()">
-                Шукати (<span id="total-results-count">0</span>)
-            </button>
+            <button class="btn search-btn" onclick="performSearch()">Показати</button>
         </div>
     
         <!-- В. Нижня частина: Інформація про локацію -->
@@ -564,6 +568,7 @@
     </script>
 </body>
 </html>
+
 
 
 
