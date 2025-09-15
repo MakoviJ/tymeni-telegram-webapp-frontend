@@ -186,7 +186,7 @@
         // NEW: Функція для оновлення тексту локації
         function updateLocationDisplay() {
             if (userCountry && userCity) {
-                locationText.textContent = `Ваша локація: ${userCountry}, ${userCity}`;
+                locationText.textContent = `$${userCity}, {userCountry}`;
             }
         }
         
@@ -388,4 +388,5 @@
     </script>
 </body>
 </html>
+
 
