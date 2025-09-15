@@ -212,14 +212,17 @@
 
         // Функції для роботи з інтерфейсом
         function showScreen(screenId) {
-            const screens = ['welcome-screen', 'main-menu', 'create-service-form'];
+            // Приховати всі екрани
+            const screens = ['welcome-screen', 'main-menu', 'create-service-form', 'search-screen'];
             screens.forEach(id => {
                 document.getElementById(id).style.display = 'none';
             });
+            
+            // Показати потрібний екран
             document.getElementById(screenId).style.display = 'block';
-
-            // NEW: Логіка відображення панелі локації
-            if (screenId === 'main-menu' || screenId === 'create-service-form') {
+        
+            // Логіка для відображення панелі локації
+            if (screenId === 'main-menu' || screenId === 'create-service-form' || screenId === 'search-screen') {
                 updateLocationDisplay();
                 locationDisplay.style.display = 'flex';
             } else {
@@ -561,6 +564,7 @@
     </script>
 </body>
 </html>
+
 
 
 
