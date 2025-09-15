@@ -464,6 +464,7 @@
         // Нова функція для завантаження категорій з лічильниками
         async function loadCategoriesWithCounts() {
             searchLoader.style.display = 'block';
+            searchResultsContainer.innerHTML = ''; // Очищаємо результати попереднього пошуку
             try {
                 const response = await fetch(`${WORKER_URL}/api/services/counts`, {
                     method: 'POST',
@@ -476,17 +477,22 @@
 
                 if (!response.ok) {
                     const errorText = await response.text();
-                    throw new Error(`Server responded with status ${response.status}: ${errorText}`);
+                    throw new Error(`Помилка сервера: статус ${response.status}. Текст: ${errorText}`);
                 }
                 
                 categoryCounts = await response.json();
                 
+                if (!categoryCounts || Object.keys(categoryCounts).length === 0) {
+                     throw new Error('Отримано пусті дані від сервера.');
+                }
+
                 populateCategoriesWithCounts();
                 updateLocationInfo();
                 
             } catch (error) {
                 console.error('Помилка завантаження лічильників:', error);
-                tg.showAlert('Не вдалося завантажити дані для пошуку. Спробуйте ще раз.');
+                // Змінено на більш інформативне повідомлення
+                tg.showAlert(`Помилка завантаження даних: ${error.message}. Спробуйте ще раз.`);
             } finally {
                 searchLoader.style.display = 'none';
             }
@@ -606,13 +612,14 @@
                 
                 if (!response.ok) {
                     const errorText = await response.text();
-                    throw new Error(`Server responded with status ${response.status}: ${errorText}`);
+                    throw new Error(`Помилка сервера: статус ${response.status}. Текст: ${errorText}`);
                 }
                 const services = await response.json();
                 displaySearchResults(services);
             } catch (error) {
                 console.error('Помилка пошуку:', error);
-                tg.showAlert('Помилка пошуку. Спробуйте ще раз.');
+                // Змінено на більш інформативне повідомлення
+                tg.showAlert(`Помилка пошуку: ${error.message}. Спробуйте ще раз.`);
                 searchResultsContainer.innerHTML = `<p style="text-align: center; padding: 20px; color: var(--tg-theme-hint-color);">Помилка завантаження даних.</p>`;
             }
         }
