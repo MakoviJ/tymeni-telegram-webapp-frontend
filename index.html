@@ -118,28 +118,6 @@
         <button class="btn" onclick="tg.showAlert('Цей розділ ще в розробці!')">📞 Мій профіль</button>
     </div>
 
-    <div id="create-service-form">
-        <h2>Опублікувати оголошення</h2>
-        <div class="form-group">
-            <label for="title">Заголовок:</label>
-            <input type="text" id="title" placeholder="Короткий опис послуги" required>
-        </div>
-        <div class="form-group">
-            <label for="description">Опис:</label>
-            <textarea id="description" placeholder="Детально опишіть послугу" rows="4"></textarea>
-        </div>
-        <div class="form-group">
-            <label for="category-select">Категорія:</label>
-            <select id="category-select" onchange="updateSubcategories()"></select>
-        </div>
-        <div class="form-group">
-            <label for="subcategory-select">Підкатегорія:</label>
-            <select id="subcategory-select"></select>
-        </div>
-        <button class="btn" onclick="submitService()">Опублікувати</button>
-        <button class="btn" onclick="showMainMenu()">Назад</button>
-    </div>
-
     <!-- НОВИЙ ЕКРАН: Вставляємо тут -->
     <div id="search-screen">
         <h2>🔍 Знайти послугу</h2>
@@ -180,6 +158,28 @@
         <!-- Контейнер для результатів (спочатку порожній) -->
         <div id="search-results" style="margin-top: 20px; text-align: left;"></div>
     
+        <button class="btn" onclick="showMainMenu()">Назад</button>
+    </div>
+
+    <div id="create-service-form">
+        <h2>Опублікувати оголошення</h2>
+        <div class="form-group">
+            <label for="title">Заголовок:</label>
+            <input type="text" id="title" placeholder="Короткий опис послуги" required>
+        </div>
+        <div class="form-group">
+            <label for="description">Опис:</label>
+            <textarea id="description" placeholder="Детально опишіть послугу" rows="4"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="category-select">Категорія:</label>
+            <select id="category-select" onchange="updateSubcategories()"></select>
+        </div>
+        <div class="form-group">
+            <label for="subcategory-select">Підкатегорія:</label>
+            <select id="subcategory-select"></select>
+        </div>
+        <button class="btn" onclick="submitService()">Опублікувати</button>
         <button class="btn" onclick="showMainMenu()">Назад</button>
     </div>
 
@@ -561,6 +561,7 @@
     </script>
 </body>
 </html>
+
 
 
 
