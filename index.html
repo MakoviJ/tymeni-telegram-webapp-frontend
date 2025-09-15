@@ -428,8 +428,11 @@
         async function showSearchScreen() {
             showScreen('search-screen');
             
+            console.log('Завантажені категорії:', Object.keys(allCategories).length);
+            
             // Спочатку завантажуємо категорії, якщо ще не завантажені
             if (Object.keys(allCategories).length === 0) {
+                console.log('Категорії не завантажені, завантажую...');
                 await loadCategories();
             }
             
@@ -440,13 +443,18 @@
         // Нова функція для завантаження категорій з лічильниками
         async function loadCategoriesWithCounts() {
             try {
-                // Отримуємо кількість оголошень для поточної локації користувача
+                console.log('Завантаження лічильників для:', userCountry, userCity);
                 const url = new URL(`${WORKER_URL}/api/services/counts`);
                 if (userCountry) url.searchParams.append('country', userCountry);
                 if (userCity) url.searchParams.append('city', userCity);
                 
+                console.log('URL запиту:', url.toString());
+                
                 const response = await fetch(url);
+                console.log('Статус відповіді:', response.status);
+                
                 categoryCounts = await response.json();
+                console.log('Отримані лічильники:', categoryCounts);
                 
                 populateCategoriesWithCounts();
                 updateLocationInfo();
@@ -460,6 +468,10 @@
         // Заповнення категорій з лічильниками
         function populateCategoriesWithCounts() {
             const categorySelect = document.getElementById('search-category-select');
+            if (!categorySelect) {
+                console.error('Елемент search-category-select не знайдено!');
+                return;
+            }
             
             // Очищуємо, залишаючи тільки першу опцію "Всі"
             const allOption = categorySelect.querySelector('option[value="Всі"]');
@@ -476,8 +488,7 @@
                 option.textContent = `${allCategories[key].name} (${categoryCounts[key] || 0})`;
                 categorySelect.appendChild(option);
             }
-        }    
-           // updateSearchButtonCount();
+        }
         
         // Оновлення підкатегорій з лічильниками
         function updateSearchSubcategoriesWithCounts() {
@@ -496,27 +507,7 @@
                     subcategorySelect.appendChild(option);
                 });
             }
-          }    
-            //updateSearchButtonCount();
-      
-        
-        // Оновлення лічильника в кнопці "Показати" - поки не потрібно
-        // function updateSearchButtonCount() {
-        //     const category = document.getElementById('search-category-select').value;
-        //     const subcategory = document.getElementById('search-subcategory-select').value;
-        //     let count = 0;
-        
-        //     if (category === 'Всі') {
-        //         count = categoryCounts.all || 0;
-        //     } else if (subcategory === 'Всі') {
-        //         count = categoryCounts[category] || 0;
-        //     } else {
-        //         const countKey = `${category}_${subcategory}`;
-        //         count = categoryCounts[countKey] || 0;
-        //     }
-        
-        //     document.getElementById('total-results-count').textContent = count;
-        // }
+        }
         
         // Оновлення інформації про локацію
         function updateLocationInfo() {
@@ -532,8 +523,8 @@
             }
         }
         
-        // Функція для виконання пошуку (залишаємо попередню логіку, але додаємо нові параметри)
-       async function performSearch() {
+        // Функція для виконання пошуку
+        async function performSearch() {
             const keyword = document.getElementById('keyword-search').value.trim();
             const category = document.getElementById('search-category-select').value;
             const subcategory = document.getElementById('search-subcategory-select').value;
@@ -552,7 +543,7 @@
                     throw new Error('Помилка сервера');
                 }
                 const services = await response.json();
-                displaySearchResults(services); // ВІДОБРАЖАЄМО РЕЗУЛЬТАТИ!
+                displaySearchResults(services);
             } catch (error) {
                 console.error('Помилка пошуку:', error);
                 tg.showAlert('Помилка пошуку. Спробуйте ще раз.');
@@ -614,17 +605,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
