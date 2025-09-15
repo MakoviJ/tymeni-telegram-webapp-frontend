@@ -50,7 +50,7 @@
             box-sizing: border-box;
         }
         /* Приховуємо всі екрани за замовчуванням */
-        #welcome-screen, #main-menu, #create-service-form {
+        #welcome-screen, #main-menu, #create-service-form, #search-screen {
             display: none;
         }
 
@@ -90,6 +90,22 @@
         .change-location-btn svg {
             margin-right: 4px;
             fill: currentColor;
+        }
+
+        /* Стилі для лоадера */
+        .loader {
+            display: none;
+            border: 4px solid var(--tg-theme-hint-color);
+            border-radius: 50%;
+            border-top: 4px solid var(--tg-theme-button-color);
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -132,9 +148,12 @@
         <div class="search-header">
             <input type="text" id="keyword-search" placeholder="🔍 Перукар, косметолог, няня...">
         </div>
-    
+        
         <!-- Б. Середня частина: Фільтр по категоріям -->
         <div class="category-filter">
+            <!-- Додаємо лоадер для індикації завантаження -->
+            <div id="search-loader" class="loader"></div>
+            
             <div class="form-group">
                 <label for="search-category-select">Категорія:</label>
                 <select id="search-category-select" onchange="updateSearchSubcategoriesWithCounts()">
@@ -153,15 +172,15 @@
             
             <button class="btn search-btn" onclick="performSearch()">Показати</button>
         </div>
-    
+        
         <!-- В. Нижня частина: Інформація про локацію -->
         <div class="location-info">
             <small>📍 <span id="current-location-display">Місто не обрано</span> • <span id="total-ads-count">0</span> оголошень</small>
         </div>
-    
+        
         <!-- Контейнер для результатів (спочатку порожній) -->
         <div id="search-results" style="margin-top: 20px; text-align: left;"></div>
-    
+        
         <button class="btn" onclick="showMainMenu()">Назад</button>
     </div>
 
@@ -213,6 +232,10 @@
         // NEW: Отримуємо доступ до елемента для відображення локації
         const locationDisplay = document.getElementById('location-display');
         const locationText = document.getElementById('location-text');
+        
+        // NEW: Елементи для лоадера
+        const searchLoader = document.getElementById('search-loader');
+        const searchResultsContainer = document.getElementById('search-results');
 
         // Функції для роботи з інтерфейсом
         function showScreen(screenId) {
@@ -427,12 +450,10 @@
         // Функція для показу екрану пошуку
         async function showSearchScreen() {
             showScreen('search-screen');
-            
-            console.log('Завантажені категорії:', Object.keys(allCategories).length);
+            searchResultsContainer.innerHTML = ''; // Очищаємо результати
             
             // Спочатку завантажуємо категорії, якщо ще не завантажені
             if (Object.keys(allCategories).length === 0) {
-                console.log('Категорії не завантажені, завантажую...');
                 await loadCategories();
             }
             
@@ -442,26 +463,32 @@
         
         // Нова функція для завантаження категорій з лічильниками
         async function loadCategoriesWithCounts() {
+            searchLoader.style.display = 'block';
             try {
-                console.log('Завантаження лічильників для:', userCountry, userCity);
-                const url = new URL(`${WORKER_URL}/api/services/counts`);
-                if (userCountry) url.searchParams.append('country', userCountry);
-                if (userCity) url.searchParams.append('city', userCity);
-                
-                console.log('URL запиту:', url.toString());
-                
-                const response = await fetch(url);
-                console.log('Статус відповіді:', response.status);
+                const response = await fetch(`${WORKER_URL}/api/services/counts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        country: userCountry,
+                        city: userCity
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Server responded with status ${response.status}: ${errorText}`);
+                }
                 
                 categoryCounts = await response.json();
-                console.log('Отримані лічильники:', categoryCounts);
                 
                 populateCategoriesWithCounts();
                 updateLocationInfo();
                 
             } catch (error) {
                 console.error('Помилка завантаження лічильників:', error);
-                tg.showAlert('Не вдалося завантажити дані для пошуку');
+                tg.showAlert('Не вдалося завантажити дані для пошуку. Спробуйте ще раз.');
+            } finally {
+                searchLoader.style.display = 'none';
             }
         }
         
@@ -488,6 +515,8 @@
                 option.textContent = `${allCategories[key].name} (${categoryCounts[key] || 0})`;
                 categorySelect.appendChild(option);
             }
+            // Оновлюємо підкатегорії одразу після заповнення категорій
+            updateSearchSubcategoriesWithCounts();
         }
         
         // Оновлення підкатегорій з лічильниками
@@ -524,11 +553,10 @@
         }
 
         function displaySearchResults(services) {
-            const resultsContainer = document.getElementById('search-results');
-            resultsContainer.innerHTML = ''; // Очищаємо контейнер
+            searchResultsContainer.innerHTML = ''; // Очищаємо контейнер
         
             if (services.length === 0) {
-                resultsContainer.innerHTML = '<p style="text-align: center; padding: 20px; color: var(--tg-theme-hint-color);">За вашим запитом нічого не знайдено.</p>';
+                searchResultsContainer.innerHTML = '<p style="text-align: center; padding: 20px; color: var(--tg-theme-hint-color);">За вашим запитом нічого не знайдено.</p>';
                 return;
             }
         
@@ -549,7 +577,7 @@
                     <p><small>Опубліковано: ${new Date(service.created_at).toLocaleDateString('uk-UA')}</small></p>
                     <button class="btn" onclick="tg.showAlert('Функція контактування зʼявиться найближчим часом!')">📞 Зв'язатися</button>
                 `;
-                resultsContainer.appendChild(serviceElement);
+                searchResultsContainer.appendChild(serviceElement);
             });
         }
 
@@ -559,24 +587,33 @@
             const category = document.getElementById('search-category-select').value;
             const subcategory = document.getElementById('search-subcategory-select').value;
             
-            // Будуємо URL для пошуку
-            const url = new URL(`${WORKER_URL}/api/services`);
-            if (userCountry && userCountry !== 'Всі') url.searchParams.append('country', userCountry);
-            if (userCity && userCity !== 'Всі') url.searchParams.append('city', userCity);
-            if (category && category !== 'Всі') url.searchParams.append('category', category);
-            if (subcategory && subcategory !== 'Всі') url.searchParams.append('subcategory', subcategory);
-            if (keyword) url.searchParams.append('search', keyword);
-        
+            searchResultsContainer.innerHTML = `<p style="text-align: center; padding: 20px; color: var(--tg-theme-hint-color);">Шукаємо...</p>`;
+
+            const payload = {
+                country: userCountry,
+                city: userCity,
+                category: category !== 'Всі' ? category : null,
+                subcategory: subcategory !== 'Всі' ? subcategory : null,
+                search: keyword || null
+            };
+
             try {
-                const response = await fetch(url);
+                const response = await fetch(`${WORKER_URL}/api/services`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
                 if (!response.ok) {
-                    throw new Error('Помилка сервера');
+                    const errorText = await response.text();
+                    throw new Error(`Server responded with status ${response.status}: ${errorText}`);
                 }
                 const services = await response.json();
                 displaySearchResults(services);
             } catch (error) {
                 console.error('Помилка пошуку:', error);
                 tg.showAlert('Помилка пошуку. Спробуйте ще раз.');
+                searchResultsContainer.innerHTML = `<p style="text-align: center; padding: 20px; color: var(--tg-theme-hint-color);">Помилка завантаження даних.</p>`;
             }
         }
 
@@ -605,4 +642,3 @@
     </script>
 </body>
 </html>
-
