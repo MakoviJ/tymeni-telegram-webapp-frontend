@@ -470,7 +470,7 @@
                 categorySelect.appendChild(option);
             }
             
-            updateSearchButtonCount();
+           // updateSearchButtonCount();
         }
         
         // Оновлення підкатегорій з лічильниками
@@ -491,26 +491,26 @@
                 });
             }
             
-            updateSearchButtonCount();
+            //updateSearchButtonCount();
         }
         
-        // Оновлення лічильника в кнопці "Шукати"
-        function updateSearchButtonCount() {
-            const category = document.getElementById('search-category-select').value;
-            const subcategory = document.getElementById('search-subcategory-select').value;
-            let count = 0;
+        // Оновлення лічильника в кнопці "Показати" - поки не потрібно
+        // function updateSearchButtonCount() {
+        //     const category = document.getElementById('search-category-select').value;
+        //     const subcategory = document.getElementById('search-subcategory-select').value;
+        //     let count = 0;
         
-            if (category === 'Всі') {
-                count = categoryCounts.all || 0;
-            } else if (subcategory === 'Всі') {
-                count = categoryCounts[category] || 0;
-            } else {
-                const countKey = `${category}_${subcategory}`;
-                count = categoryCounts[countKey] || 0;
-            }
+        //     if (category === 'Всі') {
+        //         count = categoryCounts.all || 0;
+        //     } else if (subcategory === 'Всі') {
+        //         count = categoryCounts[category] || 0;
+        //     } else {
+        //         const countKey = `${category}_${subcategory}`;
+        //         count = categoryCounts[countKey] || 0;
+        //     }
         
-            document.getElementById('total-results-count').textContent = count;
-        }
+        //     document.getElementById('total-results-count').textContent = count;
+        // }
         
         // Оновлення інформації про локацію
         function updateLocationInfo() {
@@ -568,6 +568,7 @@
     </script>
 </body>
 </html>
+
 
 
 
