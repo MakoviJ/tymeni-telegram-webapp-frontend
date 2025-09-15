@@ -425,9 +425,16 @@
         let categoryCounts = {};
         
         // Функція для показу екрану пошуку
-        function showSearchScreen() {
+        async function showSearchScreen() {
             showScreen('search-screen');
-            loadCategoriesWithCounts(); // Використовуємо нову функцію завантаження
+            
+            // Спочатку завантажуємо категорії, якщо ще не завантажені
+            if (Object.keys(allCategories).length === 0) {
+                await loadCategories();
+            }
+            
+            // Потім завантажуємо лічильники
+            await loadCategoriesWithCounts();
         }
         
         // Нова функція для завантаження категорій з лічильниками
@@ -567,6 +574,7 @@
     </script>
 </body>
 </html>
+
 
 
 
