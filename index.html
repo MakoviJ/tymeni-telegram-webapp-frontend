@@ -146,7 +146,7 @@
         
         <!-- А. Верхня частина: Пошук за ключовими словами -->
         <div class="search-header">
-            <input type="text" id="keyword-search" placeholder="🔍 Сантехнік, ремонт iPhone, дитячий лікар...">
+            <input type="text" id="keyword-search" placeholder="🔍 Перукар, косметолог, няня...">
         </div>
     
         <!-- Б. Середня частина: Фільтр по категоріям -->
@@ -414,6 +414,135 @@
             }
         }
 
+        // Глобальна змінна для зберігання кількостей
+        let categoryCounts = {};
+        
+        // Функція для показу екрану пошуку
+        function showSearchScreen() {
+            showScreen('search-screen');
+            loadCategoriesWithCounts(); // Використовуємо нову функцію завантаження
+        }
+        
+        // Нова функція для завантаження категорій з лічильниками
+        async function loadCategoriesWithCounts() {
+            try {
+                // Отримуємо кількість оголошень для поточної локації користувача
+                const url = new URL(`${WORKER_URL}/api/services/counts`);
+                if (userCountry) url.searchParams.append('country', userCountry);
+                if (userCity) url.searchParams.append('city', userCity);
+                
+                const response = await fetch(url);
+                categoryCounts = await response.json();
+                
+                populateCategoriesWithCounts();
+                updateLocationInfo();
+                
+            } catch (error) {
+                console.error('Помилка завантаження лічильників:', error);
+                tg.showAlert('Не вдалося завантажити дані для пошуку');
+            }
+        }
+        
+        // Заповнення категорій з лічильниками
+        function populateCategoriesWithCounts() {
+            const categorySelect = document.getElementById('search-category-select');
+            
+            // Очищуємо, залишаючи тільки першу опцію "Всі"
+            const allOption = categorySelect.querySelector('option[value="Всі"]');
+            categorySelect.innerHTML = '';
+            categorySelect.appendChild(allOption);
+            
+            // Оновлюємо лічильник для "Всі категорії"
+            document.getElementById('all-categories-count').textContent = categoryCounts.all || 0;
+            
+            // Додаємо решту категорій
+            for (const key in allCategories) {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = `${allCategories[key].name} (${categoryCounts[key] || 0})`;
+                categorySelect.appendChild(option);
+            }
+            
+            updateSearchButtonCount();
+        }
+        
+        // Оновлення підкатегорій з лічильниками
+        function updateSearchSubcategoriesWithCounts() {
+            const categorySelect = document.getElementById('search-category-select');
+            const subcategorySelect = document.getElementById('search-subcategory-select');
+            const selectedCategory = categorySelect.value;
+            
+            subcategorySelect.innerHTML = '<option value="Всі">Всі підкатегорії</option>';
+            
+            if (selectedCategory !== 'Всі' && allCategories[selectedCategory]) {
+                allCategories[selectedCategory].subcategories.forEach(sub => {
+                    const option = document.createElement('option');
+                    option.value = sub;
+                    const countKey = `${selectedCategory}_${sub}`;
+                    option.textContent = `${sub} (${categoryCounts[countKey] || 0})`;
+                    subcategorySelect.appendChild(option);
+                });
+            }
+            
+            updateSearchButtonCount();
+        }
+        
+        // Оновлення лічильника в кнопці "Шукати"
+        function updateSearchButtonCount() {
+            const category = document.getElementById('search-category-select').value;
+            const subcategory = document.getElementById('search-subcategory-select').value;
+            let count = 0;
+        
+            if (category === 'Всі') {
+                count = categoryCounts.all || 0;
+            } else if (subcategory === 'Всі') {
+                count = categoryCounts[category] || 0;
+            } else {
+                const countKey = `${category}_${subcategory}`;
+                count = categoryCounts[countKey] || 0;
+            }
+        
+            document.getElementById('total-results-count').textContent = count;
+        }
+        
+        // Оновлення інформації про локацію
+        function updateLocationInfo() {
+            const locationDisplay = document.getElementById('current-location-display');
+            const adsCount = document.getElementById('total-ads-count');
+            
+            if (userCountry && userCity) {
+                locationDisplay.textContent = `${userCity}, ${userCountry}`;
+                adsCount.textContent = categoryCounts.all || 0;
+            } else {
+                locationDisplay.textContent = 'Місто не обрано';
+                adsCount.textContent = '0';
+            }
+        }
+        
+        // Функція для виконання пошуку (залишаємо попередню логіку, але додаємо нові параметри)
+        async function performSearch() {
+            const keyword = document.getElementById('keyword-search').value.trim();
+            const category = document.getElementById('search-category-select').value;
+            const subcategory = document.getElementById('search-subcategory-select').value;
+            
+            // Будуємо URL для пошуку (використовуємо існуючий endpoint /api/services)
+            const url = new URL(`${WORKER_URL}/api/services`);
+            if (userCountry && userCountry !== 'Всі') url.searchParams.append('country', userCountry);
+            if (userCity && userCity !== 'Всі') url.searchParams.append('city', userCity);
+            if (category && category !== 'Всі') url.searchParams.append('category', category);
+            if (subcategory && subcategory !== 'Всі') url.searchParams.append('subcategory', subcategory);
+            if (keyword) url.searchParams.append('search', keyword); // Додаємо параметр пошуку за ключовими словами
+        
+            try {
+                const response = await fetch(url);
+                const services = await response.json();
+                displaySearchResults(services);
+            } catch (error) {
+                console.error('Помилка пошуку:', error);
+                tg.showAlert('Помилка пошуку. Спробуйте ще раз.');
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             if (window.Telegram && window.Telegram.WebApp) {
                 tg = window.Telegram.WebApp;
@@ -432,6 +561,7 @@
     </script>
 </body>
 </html>
+
 
 
 
