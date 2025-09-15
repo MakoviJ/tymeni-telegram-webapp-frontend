@@ -522,33 +522,6 @@
                 adsCount.textContent = '0';
             }
         }
-        
-        // Функція для виконання пошуку
-        async function performSearch() {
-            const keyword = document.getElementById('keyword-search').value.trim();
-            const category = document.getElementById('search-category-select').value;
-            const subcategory = document.getElementById('search-subcategory-select').value;
-            
-            // Будуємо URL для пошуку
-            const url = new URL(`${WORKER_URL}/api/services`);
-            if (userCountry && userCountry !== 'Всі') url.searchParams.append('country', userCountry);
-            if (userCity && userCity !== 'Всі') url.searchParams.append('city', userCity);
-            if (category && category !== 'Всі') url.searchParams.append('category', category);
-            if (subcategory && subcategory !== 'Всі') url.searchParams.append('subcategory', subcategory);
-            if (keyword) url.searchParams.append('search', keyword);
-        
-            try {
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error('Помилка сервера');
-                }
-                const services = await response.json();
-                displaySearchResults(services);
-            } catch (error) {
-                console.error('Помилка пошуку:', error);
-                tg.showAlert('Помилка пошуку. Спробуйте ще раз.');
-            }
-        }
 
         function displaySearchResults(services) {
             const resultsContainer = document.getElementById('search-results');
@@ -580,6 +553,33 @@
             });
         }
 
+        // Функція для виконання пошуку
+        async function performSearch() {
+            const keyword = document.getElementById('keyword-search').value.trim();
+            const category = document.getElementById('search-category-select').value;
+            const subcategory = document.getElementById('search-subcategory-select').value;
+            
+            // Будуємо URL для пошуку
+            const url = new URL(`${WORKER_URL}/api/services`);
+            if (userCountry && userCountry !== 'Всі') url.searchParams.append('country', userCountry);
+            if (userCity && userCity !== 'Всі') url.searchParams.append('city', userCity);
+            if (category && category !== 'Всі') url.searchParams.append('category', category);
+            if (subcategory && subcategory !== 'Всі') url.searchParams.append('subcategory', subcategory);
+            if (keyword) url.searchParams.append('search', keyword);
+        
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('Помилка сервера');
+                }
+                const services = await response.json();
+                displaySearchResults(services);
+            } catch (error) {
+                console.error('Помилка пошуку:', error);
+                tg.showAlert('Помилка пошуку. Спробуйте ще раз.');
+            }
+        }
+
         // Обробка натискання Enter в полі пошуку
         document.getElementById('keyword-search').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
@@ -605,3 +605,4 @@
     </script>
 </body>
 </html>
+
